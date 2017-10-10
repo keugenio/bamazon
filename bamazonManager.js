@@ -1,7 +1,8 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 var clear = require('clear');
-var columnify = require("columnify");
+var isPositiveInteger = require('is-positive-integer');
+
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -52,6 +53,7 @@ function start() {
 
 function viewInventory(param){  //  read inventory of products db
   var columnify = require("columnify");
+  // depending on param passed, set sql variable to be queried
   var sql = "";
     switch(param){
       case "all":
@@ -64,7 +66,7 @@ function viewInventory(param){  //  read inventory of products db
         sql="SELECT * FROM products where id=" + param;
         break; 
     }
-    connection.query(sql, function(err, res) {
+    connection.query(sql, function(err, res) {   
         if (err) throw err;
         var data = [];
         for (var i = 0; i < res.length; i++) { // push results into data array for use with columnify app
@@ -95,38 +97,54 @@ function addInventory() {
         {
           name: "quantity",
           type: "input",
-          message: "How much do you want to add?"
+          message: "How much do you want to add?",
+          validate: function(value) {
+            if (isNaN(value) === false && (value>0)) {
+              return true;
+            }
+            return false;
+          }
         }
       ])
       .then(function(answer) {     
-          // select product id of item to be bought
-          connection.query("SELECT * FROM products WHERE id = " + answer.id,function(err, res){ 
-              var newQuantity = parseInt(res[0].quantity) + parseInt(answer.quantity);
-              viewInventory(answer.id); 
-              var query=connection.query(
-                "UPDATE products SET ? WHERE ?",
-                [
-                  {
-                    quantity: newQuantity
-                  },
-                  {
-                    id: answer.id
-                  }
-                ],
-                function(error) {
-                  if (error) throw err;
-                  clear();
-                  console.log(res[0].product_name + " upddated successfully! The new quantity is " + newQuantity);
-                  viewInventory(answer.id);
-                }
-              );
+        // check id passed, if valid then update
+        connection.query("SELECT * FROM products WHERE id=" + answer.id,function(err, res){  
+            if (res[0]){
 
-          });     
+              // find the quantity of the id passed then add to user quantity and update record
+              connection.query("SELECT * FROM products WHERE id = " + answer.id,function(err, res){ 
+                  var newQuantity = parseInt(res[0].quantity) + parseInt(answer.quantity);
+                  viewInventory(answer.id); 
+                  var query=connection.query(
+                    "UPDATE products SET ? WHERE ?",
+                    [
+                      {
+                        quantity: newQuantity
+                      },
+                      {
+                        id: answer.id
+                      }
+                    ],
+                    function(error) {
+                      if (error) throw err;
+                      clear();
+                      printSpacer("*");
+                      console.log(res[0].product_name + " upddated successfully! The new quantity is " + newQuantity);
+                      printSpacer("*");
+                      start();
+                    }
+                  );
+              });
+            } else {
+              console.log("no product id found.  try again.");
+              start();
+            }   
+        });
      });  
 }
 
 function addNew() {
-    inquirer
+  inquirer
       .prompt([
         { 
           name: "product_name",
@@ -154,14 +172,14 @@ function addNew() {
           type: "input",
           message: "How much do you want to add?",
           validate: function(value) {
-            if (isNaN(value) === false) {
+            if (isNaN(value) === false && value >0) {
               return true;
             }
             return false;          
           }
         }        
       ])
-      .then(function(answer) {    
+      .then(function(answer) {  
           var product = {
             product_name:answer.product_name,
             department_name:answer.department_name,
@@ -171,10 +189,10 @@ function addNew() {
           var query = connection.query("INSERT INTO products SET ?", product ,function(err, res){            
                   if (err) throw err;
                   clear();
+                  printSpacer("*");
                   console.log(answer.product_name + " upddated successfully!");                  
-                  connection.query("SELECT * FROM products ORDER BY id DESC" ,function(err, res){
-                    viewInventory(res[0].id);
-                  });
+                  printSpacer("*");
+                  start();
                 }
           );   
      });  

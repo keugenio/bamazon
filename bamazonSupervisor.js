@@ -51,6 +51,7 @@ function start() {
 
 function viewProductSales(){  //  read inventory of products db
   var columnify = require("columnify");
+  // build sql statment. sum product_sales and calculate total_profit from only those records that match the join statement
   var sql ="SELECT " + 
       "departments.id," +
       "departments.department_name," + 
@@ -61,26 +62,26 @@ function viewProductSales(){  //  read inventory of products db
       "INNER JOIN products ON departments.department_name = products.department_name " + 
       "GROUP BY departments.department_name";
 
-    var query = connection.query(sql, function(err, res) {
-        if (err) throw err;
-        var data = [];
-        var total_profit=0;
-        for (var i = 0; i < res.length; i++) { // push results into data array for use with columnify app
+  var query = connection.query(sql, function(err, res) {
+      if (err) throw err;
+      var data = [];
+      var total_profit=0;
+      for (var i = 0; i < res.length; i++) { // push results into data array for use with columnify app
 
-          data.push({
-            department_id:res[i].id,
-            department_name:res[i].department_name,
-            over_head_costs:res[i].over_head_costs,
-            product_sales:res[i].product_sales,
-            total_profit:res[i].total_profit
-          });
-        }
-        // print results
-        printSpacer("*");
-        console.log(columnify(data, {columns: ['department_id', 'department_name', 'over_head_costs', 'product_sales', 'total_profit']}));
-        printSpacer("*");
-        start();
-    });
+        data.push({
+          department_id:res[i].id,
+          department_name:res[i].department_name,
+          over_head_costs:res[i].over_head_costs,
+          product_sales:res[i].product_sales,
+          total_profit:res[i].total_profit
+        });
+      }
+      // print results
+      printSpacer("*");
+      console.log(columnify(data, {columns: ['department_id', 'department_name', 'over_head_costs', 'product_sales', 'total_profit']}));
+      printSpacer("*");
+      start();
+  });
 }
 
 function addNewDept() {

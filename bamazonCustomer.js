@@ -87,37 +87,49 @@ function buyItem() {
         }
       ])
       .then(function(answer) {
-        // select product id of item to be bought
-        connection.query("SELECT * FROM products WHERE id=" + answer.id,function(err, res){   
-          // if there is enough inventory to fufill order update db  
-          if (parseInt(answer.quantity) <= parseInt(res[0].quantity)){ 
-            var newQuantity = parseInt(res[0].quantity) - parseInt(answer.quantity);        
-            var query=connection.query(
-              "UPDATE products SET ? WHERE ?",
-              [
-                {
-                  quantity: newQuantity
-                },
-                {
-                  id: answer.id
+        connection.query("SELECT * FROM products WHERE id=" + answer.id,function(err, res){  
+          if (res[0]){
+
+              // select product id of item to be bought
+              connection.query("SELECT * FROM products WHERE id=" + answer.id,function(err, res){   
+                // if there is enough inventory to fufill order update db  
+                if (parseInt(answer.quantity) <= parseInt(res[0].quantity)){ 
+                  var newQuantity = parseInt(res[0].quantity) - parseInt(answer.quantity);        
+                  var query=connection.query(
+                    "UPDATE products SET ? WHERE ?",
+                    [
+                      {
+                        quantity: newQuantity
+                      },
+                      {
+                        id: answer.id
+                      }
+                    ],
+                    function(error) {
+                      if (error) throw err;
+                      clear();
+                      var price = answer.quantity * res[0].price;
+                      clear();
+                      printSpacer("*");
+                      console.log(res[0].product_name + " bought successfully! Your total cost is $" + price);
+                      updateProductSales(res[0].id, parseInt(res[0].product_sales) + price);
+                      viewInventory(answer.id);
+                    }
+                  );
+                } else { // else if not enough inventory, try again
+                    console.log("Not enough inventory. Try again...");
+                    start(); 
                 }
-              ],
-              function(error) {
-                if (error) throw err;
-                clear();
-                var price = answer.quantity * res[0].price;
-                console.log(res[0].product_name + " bought successfully! Your total cost is $" + price);
-                console.log(res[0].id + " " + parseInt(res[0].product_sales) + " " + price);
-                updateProductSales(res[0].id, parseInt(res[0].product_sales) + price);
-                viewInventory(answer.id);
-              }
-            );
-          } else { // else if not enough inventory, try again
-              console.log("Not enough inventory. Try again...");
-              start(); 
+              
+              });
+
+          } else {
+            console.log("No id found. Try again.");
+            start();
           }
-        
         });
+
+
         
     });  
 }
@@ -135,7 +147,8 @@ function updateProductSales(prodID, totalSales){
       ],
       function(error) {
         if (error) throw err;
-        console.log(query.sql);
+        // user really doesn't need to know this info so no console message needed if successful.
+        console.log("$"+totalSales + " is the new total for product_sales field for this item. *this is only for the video");       
       });
 }
 
