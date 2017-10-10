@@ -1,6 +1,8 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 var clear = require('clear');
+var columnify = require("columnify");
+
 var connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
@@ -37,7 +39,7 @@ function start() {
           case "ADD QUANTITY":
             addInventory();
             break;      
-          case "ADD NEW":
+          case "ADD NEW PRODUCT":
             addNew();
             break;
           default:
@@ -64,7 +66,6 @@ function viewInventory(param){  //  read inventory of products db
     }
     connection.query(sql, function(err, res) {
         if (err) throw err;
-        clear();
         var data = [];
         for (var i = 0; i < res.length; i++) { // push results into data array for use with columnify app
           data.push({
@@ -115,12 +116,67 @@ function addInventory() {
                 function(error) {
                   if (error) throw err;
                   clear();
-                  console.log(res[0].product_name + " upddated successfully! The new quantity is " + res[0].quantity);
+                  console.log(res[0].product_name + " upddated successfully! The new quantity is " + newQuantity);
                   viewInventory(answer.id);
                 }
               );
 
           });     
+     });  
+}
+
+function addNew() {
+    inquirer
+      .prompt([
+        { 
+          name: "product_name",
+          type: "input",
+          message: "What is the product name of the new item?"
+        },
+        { 
+          name: "department_name",
+          type: "input",
+          message: "What is the department name of the new item?"
+        },
+        {
+          name: "price",
+          type: "input",
+          message: "What is the price of the item you want to add?",   
+          validate: function(value) {
+            if (isNaN(value) === false) {
+              return true;
+            }
+            return false;
+          }
+        },   
+        {
+          name: "quantity",
+          type: "input",
+          message: "How much do you want to add?",
+          validate: function(value) {
+            if (isNaN(value) === false) {
+              return true;
+            }
+            return false;          
+          }
+        }        
+      ])
+      .then(function(answer) {    
+          var product = {
+            product_name:answer.product_name,
+            department_name:answer.department_name,
+            price:answer.price,
+            quantity:answer.quantity
+          };  
+          var query = connection.query("INSERT INTO products SET ?", product ,function(err, res){            
+                  if (err) throw err;
+                  clear();
+                  console.log(answer.product_name + " upddated successfully!");                  
+                  connection.query("SELECT * FROM products ORDER BY id DESC" ,function(err, res){
+                    viewInventory(res[0].id);
+                  });
+                }
+          );   
      });  
 }
 

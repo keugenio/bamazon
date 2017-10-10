@@ -77,7 +77,13 @@ function buyItem() {
         {
           name: "quantity",
           type: "input",
-          message: "What is the quantity you want to buy?"
+          message: "What is the quantity you want to buy?",
+          validate: function(value) {
+            if (isNaN(value) === false) {
+              return true;
+            }
+            return false;
+          }
         }
       ])
       .then(function(answer) {
@@ -101,6 +107,8 @@ function buyItem() {
                 clear();
                 var price = answer.quantity * res[0].price;
                 console.log(res[0].product_name + " bought successfully! Your total cost is $" + price);
+                console.log(res[0].id + " " + parseInt(res[0].product_sales) + " " + price);
+                updateProductSales(res[0].id, parseInt(res[0].product_sales) + price);
                 viewInventory(answer.id);
               }
             );
@@ -112,6 +120,23 @@ function buyItem() {
         });
         
     });  
+}
+
+function updateProductSales(prodID, totalSales){
+    var query=connection.query(
+      "UPDATE products SET ? WHERE ?",
+      [
+        {
+          product_sales: totalSales
+        },
+        {
+          id: prodID
+        }
+      ],
+      function(error) {
+        if (error) throw err;
+        console.log(query.sql);
+      });
 }
 
 function printSpacer(character){
